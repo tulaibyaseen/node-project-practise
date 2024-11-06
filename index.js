@@ -3,33 +3,93 @@ const app = express();
 const users = require("./MOCK_DATA.json");
 const fs = require("fs");
 const { error } = require("console");
+const mongoose = require("mongoose");
+const { type } = require("os");
+
 const PORT = 8000;
+// connection
+mongoose
+  .connect("mongodb://127.0.0.1:27017/youtube-app-1")
+  .then(() => console.log("Mongoose Connected"))
+  .catch((err) => console.log("Mongo Error", err));
+
+// Schemaa
+const userSchema = new mongoose.Schema(
+  {
+    firstName: {
+      type: String,
+      required: true,
+    },
+    lastName: {
+      type: String,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    jobTitle: {
+      type: String,
+    },
+    gender: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+);
+
+// model
+const User = mongoose.model("user", userSchema);
 
 // console.log(users);
 
 app.use(express.urlencoded({ extended: false }));
 
 // Routes
-app.get("/users", (req, res) => {
+app.get("/users", async (req, res) => {
+  const allDbUsers = await User.find({});
+
   const html = `
       <ul>
-      ${users.map((user) => `<li>${user.first_name}</li>`).join("")}
+      ${allDbUsers
+        .map((user) => `<li>${user.firstName} - ${user.lastName}</li>`)
+        .join("")}
       </ul>
       `;
   return res.send(html);
 });
-app.get("/api/users", (req, res) => {
-  return res.json(users);
+app.get("/api/users", async (req, res) => {
+  const allDbUsers = await User.find({});
+  return res.json(allDbUsers);
 });
-
+// Hello
 // Post api
-app.post("/api/users", (req, res) => {
+app.post("/api/users", async (req, res) => {
   const body = req.body;
-  // console.log("Body", body);
-  users.push({ ...body, id: users.length + 1 });
-  fs.writeFile("./MOCK_DATA.json", JSON.stringify(users), (err, data) => {
-    return res.json({ status: "pending" });
+  if (
+    !body.first_name ||
+    !body.last_name ||
+    !body.email ||
+    !body.gender ||
+    !body.job_title
+  ) {
+    return res.status(404).json({ message: "Field is required" });
+  }
+
+  const result = await User.create({
+    firstName: body.first_name,
+    lastName: body.last_name,
+    email: body.email,
+    gender: body.gender,
+    jobTitle: body.job_title,
   });
+
+  return res.status(201).json({ result, msg: "Success" });
+  // console.log("Body", body);
+  // users.push({ ...body, id: users.length + 1 });
+  // fs.writeFile("./MOCK_DATA.json", JSON.stringify(users), (err, data) => {
+  //   return res.json({ status: "pending" });
+  // });
 });
 
 app
