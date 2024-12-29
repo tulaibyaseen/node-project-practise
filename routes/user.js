@@ -117,6 +117,8 @@ router
     );
 
     // Delete user with id
+    // Delete user with id
+
 
     // return res.json({ status: "pending" });
   });
